@@ -26,21 +26,20 @@ export class VideosController {
   }
 
   @Get()
-  findAll(@Headers('range') range: number, @Res() response: Response) {
+  findAll(@Headers('range') range: string, @Res() response: Response) {
     if (!range) {
       throw new BadRequestException('Requires Range header');
     }
 
     const videoPath = 'resources/insurance-happy-hour.mp4';
     const videoSize = fs.statSync(videoPath).size;
-    console.log(videoSize);
 
-    const CHUNK_SIZE = 10 ** 6;
-    const start = Number(range);
-    const end = Math.min(start + CHUNK_SIZE, videoSize - 1);
+    const parts = range.replace(/bytes=/, '').split('-');
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : videoSize - 1;
     const contentLength = end - start + 1;
     const videoStream = fs.createReadStream(videoPath, { start, end });
-    response.set({
+    response.writeHead(206, {
       'Content-Range': `bytes ${start}-${end}/${videoSize}`,
       'Accept-Ranges': 'bytes',
       'Content-Length': contentLength,
